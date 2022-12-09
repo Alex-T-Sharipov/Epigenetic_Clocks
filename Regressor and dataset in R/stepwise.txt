@@ -1,0 +1,72 @@
+# Steve Horvath: Estimating DNAm age.
+# This file assumes a data frame exists called dat1 whose rows correspond to CpGs
+# and whose first column reports the CpG identifier
+# and whose remaining columns corresponds to samples (e.g. Illumina arrays).
+
+
+fastImputation=FALSE
+
+#STEP 1: DEFINE QUALITY METRICS
+
+meanMethBySample =as.numeric(apply(as.matrix(dat1[,-1]),2,mean,na.rm=TRUE))
+minMethBySample   =as.numeric(apply(as.matrix(dat1[,-1]),2,min,na.rm=TRUE))
+maxMethBySample  =as.numeric(apply(as.matrix(dat1[,-1]),2,max,na.rm=TRUE))
+
+datMethUsed= t(dat1[,-1])
+print(dim(datMethUsed))
+print(1)
+colnames(datMethUsed)=as.character(dat1[,1])
+
+
+noMissingPerSample=apply(as.matrix(is.na(datMethUsed)),1,sum)
+table(noMissingPerSample)
+
+#STEP 2: Imputing 
+if (! fastImputation & nSamples>1 & max(noMissingPerSample,na.rm=TRUE)<3000 ){
+print("imputation")
+# run the following code if there is at least one missing
+if ( max(noMissingPerSample,na.rm=TRUE)>0 ){
+dimnames1=dimnames(datMethUsed)
+datMethUsed= data.frame(t(impute.knn(t(datMethUsed))$data))
+print(is.null(datMethUsed))
+print(2)
+print(dim(datMethUsed))
+dimnames(datMethUsed)=dimnames1
+} # end of if
+} # end of if (! fastImputation )
+print("no imputation")
+if ( max(noMissingPerSample,na.rm=TRUE)>=3000 ) fastImputation=TRUE
+
+
+if ( fastImputation | nSamples==1 ){
+noMissingPerSample=apply(as.matrix(is.na(datMethUsed)),1,sum)
+table(noMissingPerSample)
+if ( max(noMissingPerSample,na.rm=TRUE)>0 & max(noMissingPerSample,na.rm=TRUE) >= 3000 ) {normalizeData=FALSE}
+
+# run the following code if there is at least one missing
+if ( max(noMissingPerSample,na.rm=TRUE)>0 & max(noMissingPerSample,na.rm=TRUE) < 3000 ){
+dimnames1=dimnames(datMethUsed)
+for (i in which(noMissingPerSample>0) ){
+selectMissing1=is.na(datMethUsed[i,])
+datMethUsed[i,selectMissing1] = as.numeric(probeAnnotation21kdatMethUsed$goldstandard2[selectMissing1])
+} # end of for loop
+dimnames(datMethUsed)=dimnames1
+} # end of if
+} # end of if (! fastImputation )
+
+
+
+
+
+
+# STEP 3: Data normalization (each sample requires about 8 seconds). It would be straightforward to parallelize this operation.
+
+if (normalizeData ){
+print(3)
+print(is.null(datMethUsed))
+print(datMethUsed[1:5,1:5])
+datMethUsedNormalized=BMIQcalibration(datM=datMethUsed,goldstandard.beta= probeAnnotation21kdatMethUsed$goldstandard2,plots=FALSE)
+}
+if (!normalizeData ){ datMethUsedNormalized=datMethUsed }
+
+rm(datMethUsed); gc()

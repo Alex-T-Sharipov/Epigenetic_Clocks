@@ -1,0 +1,83 @@
+Data label (color),DNA origin,Platform,Data Use,n (Prop.Female),Median Age(range),Citation,Availability,"Cor(Age,m.age(Train.CpGs))","Median error (Age, m.age(Train.CpGs))",Median AgeAcceleration(Train.CpGs),Cor LOOCV,Error LOOCV
+1 (turquoise),Blood WB,27K,Training,715 (0.38),"33 (16,88)",Horvath 2012,GSE41037,0.96,2.8,-0.1,0.95 (0),3.2
+2 (blue),Blood WB,450K,Training,94 (0.28),"29 (18,65)",Horvath 2012,GSE41169,0.93,2.5,0.7,0.92 (0),2.7
+3 (brown),Blood WB,450K,Training,656 (0.52),"65 (19,100)",Hannum 2012,GSE40279,0.91,3.9,-0.7,0.88 (0),8.9
+4 (blue2),Blood PBMC,450K,Training,72 (0),"3.1 (1,16)",Alisch 2012,GSE36064,0.96,0.5,0.3,0.96 (0),0.8
+5 (green),Blood PBMC,450K,Training,48 (0.52),"15 (3.5,76)",Harris et al 2012,GSE32149,0.96,2.4,-0.5,0.95 (0),1.8
+6 (red),Blood Cord,27K,Training,216 (0.51),"0 (0,0)",Adkins 2011,GSE27317,NA,0.1,0.1,NA (NA),0.1
+7 (black),Brain CRBLM,27k,Training,168,"45 (20,70)",Liu 2013,GSE38873,0.81,3.7,1.4,0.68 (0),6.3
+8 (pink),Brain CRBLM,27K,Training,114 (0.3),"44 (16,96)",Gibbs 2010,GSE15745,0.95,5.7,-1.7,0.89 (0),7.7
+9 (magenta),Brain FCTX,27K,Training,133 (0.32),"43 (16,100)",Gibbs 2010,GSE15745,0.98,2.6,0.4,0.97 (0),2.7
+10 (purple),Brain PONS,27K,Training,125 (0.3),"43 (15,100)",Gibbs 2010,GSE15745,0.96,3.3,-0.3,0.94 (0),4
+11 (greenyellow),Brain Prefr.CTX,27K,Training,108 (0.48),"19 (-0.5,84)",Numata 2012,Brain Cloud,0.98,1.4,-1.9,0.98 (0),2.9
+12 (tan),BrainVariousCells,450K,Training,145 (0.48),"35 (13,79)",Guintivano 2013,GSE41826,0.94,3.1,0.1,0.83 (0),5.3
+13 (salmon),Brain TCTX,27K,Training,127 (0.33),"44 (15,100)",Gibbs 2010,GSE15745,0.99,2.2,-0.1,0.98 (0),2.6
+14 (cyan),Breast NL,27K,Training,23 (1),"46 (19,75)",Zhuang 2012,GSE32393,0.73,8.9,2.3,0.71 (0.00013),8.2
+15 (midnightblue),Buccal,27K,Training,109 (0.61),"15 (15,15)",Essex 2011,GSE25892,NA,1.5,-0.2,NA (NA),4.9
+16 (indianred),Buccal,27K,Training,8 (0.75),"43 (16,68)",Rakyan 2010,GSE20242,0.94,3.5,-0.7,0.93 (0.00073),5.9
+17 (grey60),Buccal,450K,Training,53 (0.45),"0 (0,1.5)",Martino 2013     ,GSE42700,0.88,0.2,0.2,0.82 (5.5e-14),0.3
+18 (green2),Cartilage Knee,27k,Training,41 (0.49),"66 (40,79)",Fern?ndez-Tajes 2013,GSE43269,0.79,4,-2.5,0.63 (1.1e-05),36.3
+19 (gold),Colon,27K,Training,35 (0.63),"74 (43,90)","TCGA, COAD",TCGA,0.84,6.1,-1.5,0.67 (8.8e-06),7.3
+20 (royalblue),Colon,450K,Training,24 (0.54),"14 (3.5,19)",Kellermayer 2013,GSE32146,0.6,2.9,3.6,0.67 (0.00035),14
+21 (darkred),Dermal fibroblast,27K,Training,14 (1),"20 (6,73)",Koch 2011,GSE22595,0.92,12,3.6,0.88 (2.8e-05),9
+22 (darkgreen),Epidermis,27K,Training,10 (0),"50 (26,71)",Gronniger 2010,E-MTAB-202,0.96,3.1,-2.4,0.96 (8.7e-06),11.4
+23 (darkturquoise),Gastric,27K,Training,52,"68 (25,88)",Zouridis 2012,GSE30601,0.83,5.3,-0.6,0.71 (7.1e-09),6.2
+24 (darkgrey),Head+Neck,450K,Training,50 (0.24),"62 (26,87)","TCGA, HNSC",TCGA,0.73,5.8,0,0.64 (5.5e-07),8.1
+25 (orange),Heart,27K,Training,17 (0.41),"55 (16,68)",Haas 2013                       ,GSE42510,0.82,9.2,-5.4,0.62 (0.0074),22.3
+26 (darkorange),Kidney,450K,Training,43 (0.3),"66 (31,83)","TCGA, KIRP",TCGA,0.88,4.5,0.1,0.88 (5.8e-15),3.5
+27 (lightsteelblue2),Kidney,450K,Training,160 (0.34),"63 (38,90)","TCGA, KIRC",TCGA,0.87,3.5,0.1,0.78 (0),4.8
+28 (skyblue),Liver ,27K,Training,57 (0.14),"51 (20,79)",Shen 2012,GSE37988,0.9,4.5,0.2,0.79 (1.9e-13),8.3
+29 (saddlebrown),Lung NL Adj,27K,Training,27 (0.15),"69 (52,83)","TCGA, LUSC",TCGA,0.86,3.1,-1.4,0.83 (6.3e-08),3.5
+30 (steelblue),Lung NL Adj,27K,Training,24 (0.58),"66 (51,77)","TCGA, LUAD",TCGA,0.65,3.4,2.7,0.57 (0.0036),4.4
+31 (paleturquoise),Lung NL Adj,450K,Training,40 (0.32),"73 (40,85)","TCGA, LUSC",TCGA,0.87,3.1,0.1,0.82 (1.1e-10),4.2
+32 (violet),MSC (bonemarrow),27K,Training,16 (0.38),"52 (21,85)",Bork 2010,GSE17448,0.95,5.2,0,0.8 (0.00019),12.4
+33 (darkolivegreen),Placenta,27K,Training,28 (1),"0 (0,0)",Gordon 2012,GSE36642,NA,0.2,0.1,NA (NA),0.2
+34 (darkmagenta),Prostate NL,27K,Training,69 (0),"61 (44,73)",Kobayashi 2011,GSE26126,0.6,4.3,-1,0.44 (0.00013),6.2
+35 (sienna3),Prostate NL,450K,Training,44 (0),"63 (44,72)","TCGA, PRAD",TCGA,0.47,3.8,1.2,0.27 (0.08),6.9
+36 (yellowgreen),Saliva,27K,Training,131 (0.015),"29 (21,55)",Liu 2010,GSE34035,0.88,3.2,0.6,0.86 (0),3.9
+37 (skyblue3),Saliva,27K,Training,69 (0),"35 (21,55)",Bockland 2011,GSE28746,0.93,2.7,1.2,0.92 (0),3.4
+38 (plum1),Stomach,27K,Training,41 (0.51),"69 (43,87)","TCGA, STAD",TCGA,0.84,3.7,1.1,0.59 (5.8e-05),6.8
+39 (orangered4),Thyroid,450K,Training,25 (0.8),"40 (18,76)","TCGA, THCA",TCGA,0.96,4.1,-1.8,0.89 (3.9e-09),19.1
+40 (mediumpurple3),Blood WB,27K,Test,191 (0.51),"43 (24,74)",Teschendorff 2010,GSE20067,0.81,3.5,0.5,0.84 (0),3.4
+41 (lightsteelblue1),Blood WB,27K,Test,93 (1),"63 (49,74)",Rakyan 2010,GSE20236,0.69,8.1,-7.7,0.7 (3.6e-15),5.5
+42 (darkcyan),Blood WB,27K,Test,262 (1),"67 (49,91)",Song 2010,GSE19711,0.63,5.1,-3.6,0.64 (0),4.7
+43 (orange),Blood WB,27K,Test,269 (1),"64 (52,78)",Teschendorff 2010  Song 2009,GSE19711,0.66,3.9,-2.6,0.68 (0),3.6
+44 (green),Blood WB,450K,Test,689 (0.71),"54 (17,70)",Liu 2013,GSE42861,0.89,3.8,2.1,0.9 (0),4
+45 (darkorange2),Blood PBMC,27K,Test,386 (0),"9.3 (3.6,18)",Alisch 2012,GSE27097,0.7,1.7,1.5,0.74 (0),1.6
+46 (brown4),Blood PBMC,450K,Test,38 (0.74),"44 (0,100)",Heyn 2012,GSE30870,0.99,1,-5.3,0.99 (0),0.8
+47 (bisque4),Blood PBMC,27K,Test,92 (NaN),"33 (24,45)",Lam 2012,GSE37008,0.73,2.9,-1.1,0.75 (0),3.1
+48 (darkslateblue),Blood Cord,27K,Test,48 (0.021),"0 (0,0)",Turan,GSE36812,NA,0.6,2.3,NA (NA),0.2
+49 (plum2),Blood Cord,27K,Test,84 (0.52),"0 (0,0.75)",Khulan 2012,GSE34257,-0.04,0.2,1,-0.04 (0.69),0.1
+50 (thistle2),Blood Cord,27K,Test,53 (0.45),"0 (0,0)",Gordon 2012,GSE36642,NA,0.2,0.2,NA (NA),0.2
+51 (darkblue),Blood CD4 Tcells,450K,Test,48 (NaN),"0.5 (0,1)",Martino 2012,GSE34639,0.78,0.3,0.4,0.87 (8.9e-16),0.3
+52 (salmon4),Blood CD4+CD14,27K,Test,50 (0.68),"34 (16,69)",Rakyan 2010,GSE20242,0.9,3.7,-0.5,0.92 (0),3.7
+53 (palevioletred3),Blood Cell Types,450K,Test,16 (0.62),"32 (17,60)",Heyn 2013,GSE42865,0.46,4.4,3.4,0.38 (0.14),3.2
+54 (brown3),Brain Cerebellar,27K,Test,20 (0),"22 (1,60)",Ginsberg 2012,GSE38608,0.92,5.9,5.3,0.9 (5.3e-08),11
+55 (maroon),Brain Occipital Cortex,27K,Test,16 (0),"25 (1,60)",Ginsberg 2012,GSE38608,0.98,1.5,1.9,0.98 (5.5e-12),1.5
+56 (lightpink4),Breast NL Adj,450K,Test,81 (1),"55 (28,90)","TCGA, BRCA",TCGA,0.89,12.5,10.6,0.88 (0),11.1
+57 (lavenderblush3),Breast NL Adj,27K,Test,27 (1),"51 (35,88)","TCGA, BRCA",TCGA,0.86,15,12.8,0.89 (4.9e-10),3.7
+58 (deepskyblue),Buccal,450K,Test,51 (0.45),"0 (0,1.5)",Martino 2013     ,GSE42700,0.83,0.4,0.5,0.74 (3.9e-10),0.6
+59 (darkseagreen4),Colon,450K,Test,38 (0.45),"72 (40,90)","TCGA,COAD",TCGA,0.85,5.6,-5.3,0.82 (4.5e-10),7.2
+60 (coral1),Fat Adip,27K,Test,10 (0.4),"75 (73,78)",Ribel-Madsen 2012,GSE38291,0.65,2.7,-3.1,0.37 (0.29),10.2
+61 (brown2),Heart,27K,Test,6 (0),"60 (55,71)",Pai 2011,GSE26033,0.77,12.5,-13,0.83 (0.042),15.5
+62 (coral2),Kidney,27K,Test,198 (0.35),"60 (33,86)","TCGA, KIRC",TCGA,0.86,4.6,3.4,0.87 (0),4.4
+63 (mediumorchid),Liver,450K,Test,37 (0.35),"68 (20,81)","TCGA, LIHC",TCGA,0.89,6.7,-4.7,0.88 (6.2e-13),8.6
+64 (skyblue2),Lung NL Adj,450K,Test,26 (0.46),"66 (42,86)","TCGA, LUAD",TCGA,0.87,5.2,3,0.9 (6.6e-10),4.2
+65 (yellow4),Muscle,27K,Test,22 (0.55),"66 (53,78)",Ribel-Madsen 2012,GSE38291,0.18,10.7,-13.6,0.09 (0.68),27.6
+66 (skyblue1),Muscle,27K,Test,44 (0),"25 (25,25)",Jacobsen 2012,GSE36166,0,18.8,18.8,NA (NA),24.1
+67 (plum),Placenta,450k,Test,40 (NaN),"0 (0,0)",Blair 2013,GSE44667,NA,0.2,0.1,NA (NA),0.3
+68 (orangered3),Saliva,27K,Test,52 (0.92),"27 (21,55)",Liu 2010,GSE34035,0.83,2.7,0.1,0.86 (2.2e-16),2.9
+69 (mediumpurple2),Uterine Cervix,27K,Test,152 (1),"25 (19,55)",Zhuang 2012,GSE30758,0.75,6.2,5.8,0.73 (0),3.7
+70 (lightsteelblue),Uterine Endomet,450K,Test,28 (1),"62 (35,90)","TCGA, UCEG",TCGA,0.55,11.4,1.9,0.57 (0.0014),8.4
+71 (lightcoral),Various Tissues,27K,Test,44 (0.41),"71 (0,83)",Myers 2012,GSE40700,0.93,9.3,-0.7,0.9 (1.1e-10),11
+72 (indianred4),Chimp+Human Tissues,27K,Other,35 (0.4),"47 (9,81)",Pai 2011,GSE26033   ,0.41,11.3,8,NA,NA
+73 (firebrick4),Ape WB,450k,Other,32 (0.62),"22 (9,43)",Hernando-Herraez 2013,GSE41782,0.41,6.8,0.2,NA,NA
+74 (darkolivegreen4),Sperm,27K,Other,19 (1),"0 (0,0)",Pacheco 2011   ,GSE26974   ,NA,26.8,27.3,NA,NA
+75 (brown2),Sperm,450k,Other,26 (0),"0 (0,0)",Krausz 2012,GSE47627,NA,26.3,25.6,NA,NA
+76 (blue2), Vasc.Endoth(Umbilical),27K,Other,42 (0.43),"0 (0,0)",Gordon 2012,GSE36642,NA,6.2,7.6,NA (NA),3.5
+77,Stem cells+Somatic Cells,27K,Other,271 (NA),NA,Nazor 2012,GSE30653,NA,NA,NA,NA,NA
+78,Stem cells+Somatic Cells,450K,Other,153 (0.63),NA,Nazor 2012,GSE31848,NA,NA,NA,NA,NA
+79,Reprogrammed mesenchymal stromal cells ,450K,Other,24 (NA),NA,Shao 2012,GSE37066,NA,NA,NA,NA,NA
+80,HematopoieticStemAndNormalPrimaryTissue,27k,Other,34 (NA),NA,Calvanese 2012,GSE30090,NA,NA,NA,NA,NA
+81,hESC                                      ,27k,Other,6 (NA),NA,Ramos-Mej?a 2012,GSE30456,NA,NA,NA,NA,NA
+82,Blood Cell Types,450K,Other,60 (0),NA,Reinius 2012,GSE35069,NA,NA,NA,NA,NA

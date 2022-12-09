@@ -1,0 +1,738 @@
+---
+title: "LINREG"
+output: html_document
+date: "2022-11-22"
+---
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(c("impute"))
+BiocManager::install(c("WGCNA"))
+packages = c("RPMM", "sqldf", "WGCNA")
+install.packages(packages)
+BiocManager::install("GO.db")
+BiocManager::install("preprocessCore")
+BiocManager::install("GEOquery")
+library(GEOquery)
+install.packages("stringr")
+install.packages("tidyverse")
+lapply(packages, require, character.only = TRUE)
+packages = c("caret", "glmnet", "MASS")
+install.packages(packages)
+lapply(packages, require, character.only = TRUE)
+library(glmnet)
+install.packages("zoo")                                    # Install & load zoo package
+library("zoo")
+```
+
+
+```{r}
+source("normalization.txt")
+
+trafo= function(x,adult.age=20) { x=(x+1)/(1+adult.age); y=ifelse(x<=1, log( x),x-1);y }
+anti.trafo= function(x,adult.age=20) { ifelse(x<0, (1+adult.age)*exp(x)-1, (1+adult.age)*x+adult.age) }
+probeAnnotation21kdatMethUsed=read.csv("22.csv")
+probeAnnotation27k=read.csv("21.csv")
+datClock=read.csv("23.csv")
+
+
+# For a small file, e.g. measured on the 27k platform you could just use read.csv. 
+# But for large files, e.g. those measured on the 450K platform, I recommend you use read.csv.sql.
+dat0=read.csv.sql("26.csv") ;
+nSamples=dim(dat0)[[2]]-1
+nProbes= dim(dat0)[[1]]
+# the following command may not be needed. But it is sometimes useful when you use read.csv.sql
+dat0[,1]= gsub(x=dat0 [,1],pattern="\"",replacement="") 
+#Create a log file which will be output into your directory
+# The code looks a bit complicated because it serves to create a log file (for error checks etc).
+# It will automatically create a log file.
+file.remove("LogFile.txt")
+file.create("LogFile.txt")
+DoNotProceed=FALSE
+cat(paste( "The methylation data set contains", nSamples, "samples (e.g. arrays) and ", nProbes, " probes."),file="LogFile.txt")
+if (nSamples==0) {DoNotProceed=TRUE; cat(paste( "\n ERROR: There must be a data input error since there seem to be no samples.\n Make sure that you input a comma delimited file (.csv file)\n that can be read using the R command read.csv.sql . Samples correspond to columns in that file  ."), file="LogFile.txt",append=TRUE) } 
+if (nProbes==0) {DoNotProceed=TRUE; cat(paste( "\n ERROR: There must be a data input error since there seem to be zero probes.\n Make sure that you input a comma delimited file (.csv file)\n that can be read using the R command read.csv.sql  CpGs correspond to rows.")   , file="LogFile.txt",append=TRUE) } 
+if (  nSamples > nProbes  ) { cat(paste( "\n MAJOR WARNING: It worries me a lot that there are more samples than CpG probes.\n Make sure that probes correspond to rows and samples to columns.\n I wonder whether you want to first transpose the data and then resubmit them? In any event, I will proceed with the analysis."),file="LogFile.txt",append=TRUE) }
+if (  is.numeric(dat0[,1]) ) { DoNotProceed=TRUE; cat(paste( "\n Error: The first column does not seem to contain probe identifiers (cg numbers from Illumina) since these entries are numeric values. Make sure that the first column of the file contains probe identifiers such as cg00000292. Instead it contains ", dat0[1:3,1]  ),file="LogFile.txt",append=TRUE)  } 
+if (  !is.character(dat0[,1]) ) {  cat(paste( "\n Major Warning: The first column does not seem to contain probe identifiers (cg numbers from Illumina) since these entries are numeric values. Make sure that the first column of the file contains CpG probe identifiers such as cg00000292. Instead it contains ", dat0[1:3,1]  ),file="LogFile.txt",append=TRUE)  } 
+datout=data.frame(Error=c("Input error. Please check the log file for details","Please read the instructions carefully."), Comment=c("", "email Steve Horvath."))
+if ( ! DoNotProceed ) {
+nonNumericColumn=rep(FALSE, dim(dat0)[[2]]-1)
+for (i in 2:dim(dat0)[[2]] ){ nonNumericColumn[i-1]=! is.numeric(dat0[,i]) }
+if (  sum(nonNumericColumn) >0 ) { cat(paste( "\n MAJOR WARNING: Possible input error. The following samples contain non-numeric beta values: ", colnames(dat0)[-1][ nonNumericColumn], "\n Hint: Maybe you use the wrong symbols for missing data. Make sure to code missing values as NA in the Excel file. To proceed, I will force the entries into numeric values but make sure this makes sense.\n" ),file="LogFile.txt",append=TRUE)  } 
+XchromosomalCpGs=as.character(probeAnnotation27k$Name[probeAnnotation27k$Chr=="X"])
+selectXchromosome=is.element(dat0[,1], XchromosomalCpGs )
+selectXchromosome[is.na(selectXchromosome)]=FALSE
+meanXchromosome=rep(NA, dim(dat0)[[2]]-1)
+if (   sum(selectXchromosome) >=500 )  {
+meanXchromosome= as.numeric(apply( as.matrix(dat0[selectXchromosome,-1]),2,mean,na.rm=TRUE)) }
+if (  sum(is.na(meanXchromosome)) >0 ) { cat(paste( "\n \n Comment: There are lots of missing values for X chromosomal probes for some of the samples. This is not a problem when it comes to estimating age but I cannot predict the gender of these samples.\n " ),file="LogFile.txt",append=TRUE)  } 
+
+match1=match(probeAnnotation21kdatMethUsed$Name , dat0[,1])
+if  ( sum( is.na(match1))>0 ) { 
+missingProbes= probeAnnotation21kdatMethUsed$Name[!is.element( probeAnnotation21kdatMethUsed$Name , dat0[,1])]    
+DoNotProceed=TRUE; cat(paste( "\n \n Input error: You forgot to include the following ", length(missingProbes), " CpG probes (or probe names):\n ", paste( missingProbes, sep="",collapse=", ")),file="LogFile.txt",append=TRUE)  } 
+
+match1=match(probeAnnotation21kdatMethUsed$Name , dat0[,1])
+if  ( sum( is.na(match1))>0 ) stop(paste(sum( is.na(match1)), "CpG probes cannot be matched"))
+dat1= dat0[match1,]
+asnumeric1=function(x) {as.numeric(as.character(x))}
+dat1[,-1]=apply(as.matrix(dat1[,-1]),2,asnumeric1)
+
+set.seed(1)
+# Do you want to normalize the data (recommended)?
+normalizeData=TRUE
+source("stepwise.txt")
+
+if (  sum(  datout$Comment  != "" )   ==0 ) { cat(paste( "\n The individual samples appear to be fine. "),file="LogFile.txt",append=TRUE)  } 
+if (  sum(  datout$Comment != "" )   >0 ) { cat(paste( "\n Warnings were generated for the following samples.\n", datout[,1][datout$Comment != ""], "\n Hint: Check the output file for more details."),file="LogFile.txt",append=TRUE)  } 
+} 
+# output the results into the directory
+write.table(datout,"Output.csv", row.names=F, sep="," )
+```
+
+```{r}
+datasets = read.csv("1.csv")
+names = as.list(datasets$Availability)
+# Only 63 of the 82 datasets are available from GEO
+filtered = list()
+print(length(filtered))
+for (name in names){
+  if (identical(substr(name,1,3),"GSE")){
+    filtered = append(filtered, name)
+  }
+}
+write.csv(filtered, file = "filtered.csv")
+```
+
+```{r}
+# Dataset normalization
+
+# Get Hoverth's "Gold standard" for data normalization
+gold <- read.csv("21.csv")
+golddf = data.frame(Name=gold$Name, overallMeanByCpGacross50data=gold$overallMeanByCpGacross50data)
+write.table(golddf,"gold.csv", row.names=F, sep="," )
+
+# Function for normalizing the datasets
+normalize=function(data=NULL, n="normalization.txt", s="stepwise.txt", mns="21.csv", output="normalized_data.csv", altum=FALSE) 
+{
+
+  if(altum){
+    temp <- data
+    d1 = dim(temp)[[1]]
+    d2 = dim(temp)[[2]]
+    samples = temp[1:d1, 1:1]
+    values = temp[1:d1, 5:d2]
+    cpgs = colnames(values)
+    mtrx = data.matrix(values)
+    mtrx = t(mtrx)
+    new_df = data.frame(mtrx)
+    new_df = cbind(ID_REF=cpgs, new_df)
+    colnames(new_df) <- unlist(append(c("ID_REF"), samples))
+    rownames(new_df) <- NULL
+    data <- new_df
+  }
+
+  
+  source(n)
+  trafo= function(x,adult.age=20) { x=(x+1)/(1+adult.age); y=ifelse(x<=1, log( x),x-1);y }
+  anti.trafo= function(x,adult.age=20) { ifelse(x<0, (1+adult.age)*exp(x)-1, (1+adult.age)*x+adult.age) }
+
+  colnames(data)[1] <- "ProbeID"
+  d1 = dim(data)[[1]]
+  d2 = dim(data)[[2]]
+  locations = unlist(data$ProbeID)
+  probe=read.csv(mns)
+  probe = probe[probe$Name %in% locations, ]
+  probeAnnotation21kdatMethUsed<<-read.csv("22.csv")
+  probeAnnotation27k<<-read.csv("21.csv")
+  
+  dat0=data
+  dat0=na.aggregate(dat0[1:d1,2:d2])
+  dat0=cbind(ProbeID=locations, dat0)
+  colnames(dat0)[1] <- "ProbeID"
+  nSamples<<-dim(dat0)[[2]]-1
+  nProbes<<- dim(dat0)[[1]]
+  
+  
+  dat1 <<- dat0
+  print(dim(dat1))
+  
+  set.seed(1)
+  normalizeData<<-TRUE
+  source(s)
+
+  if(altum){
+    input = datMethUsedNormalized
+    d1 = dim(input)[[1]]
+    d2 = dim(input)[[2]]
+    ds_age_gender = temp[1:d1, 1:4]
+    input = cbind(X=temp[1:d1, 1], dataset=temp[1:d1, 2], age=temp[1:d1, 3], gender=temp[1:d1, 4],  input)
+    datMethUsedNormalized = input
+  }
+  
+  #write.table(datMethUsedNormalized,output, row.names=F, sep="," )
+  #print(dim(datMethUsedNormalized))
+  return(datMethUsedNormalized)
+}
+#normalize(data, altum=TRUE)
+```
+
+
+```{r}
+# Among the 63 publically available datasets, only 49 contained some retrievable age annotation and the rest had no age.
+# Here I deduce the age of embryonic cells to be 0 and the age of umbilical cord blood to be months of conception / 12
+
+small_filtered = c('GSE40700', 'GSE30456', 'GSE42510', 'GSE22595', 'GSE17448', 'GSE38291', 'GSE30090', 'GSE36166', 'GSE20242', 'GSE38608', 'GSE43269', 'GSE36812', 'GSE26033', 'GSE34257', 'GSE28746', 'GSE20236', 'GSE37988', 'GSE25892', 'GSE32393', 'GSE30758', 'GSE36642', 'GSE37008', 'GSE26126', 'GSE38873', 'GSE20067', 'GSE34035', 'GSE27317', 'GSE30653', 'GSE30601', 'GSE27097', 'GSE41782', 'GSE42865', 'GSE19711', 'GSE32146', 'GSE37066', 'GSE41037', 'GSE47627', 'GSE30870', 'GSE44667', 'GSE34639', 'GSE42700', 'GSE35069\n', 'GSE32149', 'GSE36064', 'GSE15745', 'GSE41169', 'GSE31848', 'GSE41826')
+
+current_df = NULL
+current_label = NULL
+i = 1
+skip_to_next <- FALSE
+
+explicit_age = 0
+stem_cells = 0
+umbilical = 0
+normalized = 0
+
+for (f in small_filtered){
+  filename = paste(f, "_family.soft.gz", sep="")
+  cat("Currently processing ", filename, " [ ", i, " / ", length(small_filtered), " ]\n")
+
+  tryCatch({gse <- getGEO(filename=filename)}, error = function(e) { skip_to_next <<- TRUE})
+  if(skip_to_next) { 
+    i = i + 1
+    next
+  }
+  gsms = gse@gsms
+
+
+  j = 1
+
+  i=i+1
+  
+  for(gsm in gsms){
+    name <- names(gsms)[j]
+    cat("Currently processing gsm no. ", " [ ", j, " / ", length(gsms), " ]\n")
+    sample = gsm@dataTable@table
+    if(dim(sample)[[1]]==0){
+      j = j + 1
+      next
+    }
+    
+    
+    age=NA
+    chars = gsm@header[["characteristics_ch1"]]
+    for(element in chars){
+      if(grepl("age", element, fixed = TRUE)){
+        # print("found age")
+        explicit_age=explicit_age+1
+        age = stringr::str_split(element, ": ", n = 2, simplify = TRUE)[2]
+        age = stringr::str_split(age, " ", n = 2, simplify = TRUE)[1]
+        age=as.integer(age)
+        break
+      }
+      if(grepl("stem",element, fixed = TRUE)){
+        # print("found stem")
+        #age = 0
+        stem_cells = stem_cells + 1
+        break
+      }
+      if(grepl("month", element, fixed = TRUE)){
+        # print("found month")
+        # age = as.integer(stringr::str_split(element, ": ", n = 2, simplify = TRUE)[2]) /12
+        umbilical = umbilical + 1
+      }
+    }
+    j = j + 1
+    if(is.na(age)){
+      cat("Skipping dataset ", filename, " - no age label provided")
+      break
+    }
+    methylation_values = sample$VALUE
+    
+    new_column = data.frame(ID_REF=sample$ID_REF, VALUE=sample$VALUE)
+    colnames(new_column) <- c("ID_REF", name)
+
+    tryCatch({
+        normalized = normalized + 1
+        result = normalize(new_column)
+        result = t(result)
+        result = data.frame(result)
+        ID_REF = rownames(result)
+        result = cbind(ID_REF, result)
+        new_column <- result
+      }, error = function(e) {
+      # print(e)
+        normalized = normalized - 1
+      })
+
+    if (is.null(current_df)){
+      current_df = new_column
+      current_label = data.frame(age=age, name=name)
+      colnames(current_label) <- c("age", "name")
+      next
+    }
+
+    current_df = merge(current_df, new_column, by="ID_REF")
+    current_label[nrow(current_label)+1, ] <- c(age, name)
+    
+
+  }
+}
+write.table(current_df,"norm_age_df.csv", row.names=F, sep="," )
+write.table(current_label,"norm_age_labels.csv", row.names=F, sep="," )
+```
+
+
+```{r}
+# Obtain common CpGs
+for (gsm in gsms){
+    sample = gsm@dataTable@table
+    locations = unlist(sample$ID_REF)
+    if(is.null(common_locations)){
+      common_locations = locations
+    }
+    common_locations = intersect(locations, common_locations)
+    cat(length(common_locations))
+  }
+i=1
+#common_locations = NULL
+for (f in small_filtered[55:length(small_filtered)]){
+  filename = paste(f, "_family.soft.gz", sep="")
+  cat("Currently processing ", filename, " [ ", i, " / ", length(small_filtered), " ]\n")
+  gse <- getGEO(filename=filename)
+  gsms = gse@gsms
+  
+  current_df = NULL
+  current_label = NULL
+  j = 1
+  for (gsm in gsms){
+    cat("Currently processing gsm no. ", " [ ", j, " / ", length(gsms), " ]\n")
+    sample = gsm@dataTable@table
+    locations = unlist(sample$ID_REF)
+    if(is.null(common_locations)){
+      common_locations = locations
+    }
+    common_locations = intersect(locations, common_locations)
+    j=j+1
+  }
+  i=i+1
+}
+# Among 8689 common locations, some of the Hovarth's CpGs are absent. So, I decided to fill missing values with column averages instead
+write.table(common_locations, "commonlocations.csv", sep="," )
+```
+
+
+```{r}
+# Among the 63 publically available datasets, only 49 contained some retrievable age annotation and the rest had no age.
+# Here I deduce the age of embryonic cells to be 0 and the age of umbilical cord blood to be months of conception / 12
+
+small_filtered = c('GSE40700', 'GSE30456', 'GSE42510', 'GSE22595', 'GSE17448', 'GSE38291', 'GSE30090', 'GSE36166', 'GSE20242', 'GSE38608', 'GSE43269', 'GSE36812', 'GSE26033', 'GSE34257', 'GSE28746', 'GSE20236', 'GSE37988', 'GSE25892', 'GSE32393', 'GSE30758', 'GSE36642', 'GSE37008', 'GSE26126', 'GSE38873', 'GSE20067', 'GSE34035', 'GSE27317', 'GSE30653', 'GSE30601', 'GSE27097', 'GSE41782', 'GSE42865', 'GSE19711', 'GSE32146', 'GSE37066', 'GSE41037', 'GSE47627', 'GSE30870', 'GSE44667', 'GSE34639', 'GSE42700', 'GSE35069\n', 'GSE32149', 'GSE36064', 'GSE15745', 'GSE41169', 'GSE31848', 'GSE41826')
+
+current_df = NULL
+current_label = NULL
+i = 1
+skip_to_next <- FALSE
+
+for (f in small_filtered){
+  filename = paste(f, "_family.soft.gz", sep="")
+  cat("Currently processing ", filename, " [ ", i, " / ", length(small_filtered), " ]\n")
+
+  tryCatch({gse <- getGEO(filename=filename)}, error = function(e) { skip_to_next <<- TRUE})
+  if(skip_to_next) { 
+    i = i + 1
+    next
+  }
+  gsms = gse@gsms
+
+
+  j = 1
+
+  i=i+1
+  
+  for(gsm in gsms){
+    name <- names(gsms)[j]
+    cat("Currently processing gsm no. ", " [ ", j, " / ", length(gsms), " ]\n")
+    sample = gsm@dataTable@table
+    if(dim(sample)[[1]]==0){
+      j = j + 1
+      next
+    }
+    
+    
+    age=NA
+    chars = gsm@header[["characteristics_ch1"]]
+    for(element in chars){
+      if(grepl("age", element, fixed = TRUE)){
+        # print("found age")
+        age = stringr::str_split(element, ": ", n = 2, simplify = TRUE)[2]
+        age = stringr::str_split(age, " ", n = 2, simplify = TRUE)[1]
+        age=as.integer(age)
+        break
+      }
+      if(grepl("stem",element, fixed = TRUE)){
+        # print("found stem")
+        age = 0
+        break
+      }
+      if(grepl("month", element, fixed = TRUE)){
+        # print("found month")
+        age = as.integer(stringr::str_split(element, ": ", n = 2, simplify = TRUE)[2]) /12
+      }
+    }
+    if(is.na(age)){
+      cat("Skipping dataset ", filename, " - no age label provided")
+      break
+    }
+    methylation_values = sample$VALUE
+    
+    if (is.null(current_df)){
+      current_df = data.frame(ID_REF=sample$ID_REF, VALUE=sample$VALUE)
+      colnames(current_df) <- c("ID_REF", name)
+      print(name)
+      print(age)
+      current_label = data.frame(age=age, name=name)
+      colnames(current_label) <- c("age", "name")
+      next
+    }
+    new_column = data.frame(ID_REF=sample$ID_REF, VALUE=sample$VALUE)
+    colnames(new_column) <- c("ID_REF", name)
+    current_df = merge(current_df, new_column, by="ID_REF")
+    current_label[nrow(current_label)+1, ] <- c(age, name)
+    
+    j = j + 1
+  }
+}
+write.table(current_df,"df.csv", row.names=F, sep="," )
+write.table(current_label,"labels.csv", row.names=F, sep="," )
+show(current_df[1:5, 1:5])
+```
+
+```{r}
+# Among the 63 publically available datasets, only 49 contained some retrievable age annotation and the rest had no age.
+# Here I deduce the age of embryonic cells to be 0 and the age of umbilical cord blood to be months of conception / 12
+
+small_filtered = c('GSE40700', 'GSE30456', 'GSE42510', 'GSE22595', 'GSE17448', 'GSE38291', 'GSE30090', 'GSE36166', 'GSE20242', 'GSE38608', 'GSE43269', 'GSE36812', 'GSE26033', 'GSE34257', 'GSE28746', 'GSE20236', 'GSE37988', 'GSE25892', 'GSE32393', 'GSE30758', 'GSE36642', 'GSE37008', 'GSE26126', 'GSE38873', 'GSE20067', 'GSE34035', 'GSE27317', 'GSE30653', 'GSE30601', 'GSE27097', 'GSE41782', 'GSE42865', 'GSE19711', 'GSE32146', 'GSE37066', 'GSE41037', 'GSE47627', 'GSE30870', 'GSE44667', 'GSE34639', 'GSE42700', 'GSE35069\n', 'GSE32149', 'GSE36064', 'GSE15745', 'GSE41169', 'GSE31848', 'GSE41826')
+
+current_df = NULL
+current_label = NULL
+i = 1
+skip_to_next <- FALSE
+
+explicit_age = 0
+stem_cells = 0
+umbilical = 0
+
+for (f in small_filtered){
+  filename = paste(f, "_family.soft.gz", sep="")
+  cat("Currently processing ", filename, " [ ", i, " / ", length(small_filtered), " ]\n")
+
+  tryCatch({gse <- getGEO(filename=filename)}, error = function(e) { skip_to_next <<- TRUE})
+  if(skip_to_next) { 
+    i = i + 1
+    next
+  }
+  gsms = gse@gsms
+
+
+  j = 1
+
+  i=i+1
+  
+  for(gsm in gsms){
+    name <- names(gsms)[j]
+    cat("Currently processing gsm no. ", " [ ", j, " / ", length(gsms), " ]\n")
+    sample = gsm@dataTable@table
+    if(dim(sample)[[1]]==0){
+      j = j + 1
+      next
+    }
+    
+    
+    age=NA
+    chars = gsm@header[["characteristics_ch1"]]
+    for(element in chars){
+      if(grepl("age", element, fixed = TRUE)){
+        # print("found age")
+        explicit_age=explicit_age+1
+        age = stringr::str_split(element, ": ", n = 2, simplify = TRUE)[2]
+        age = stringr::str_split(age, " ", n = 2, simplify = TRUE)[1]
+        age=as.integer(age)
+        break
+      }
+      if(grepl("stem",element, fixed = TRUE)){
+        # print("found stem")
+        #age = 0
+        stem_cells = stem_cells + 1
+        break
+      }
+      if(grepl("month", element, fixed = TRUE)){
+        # print("found month")
+        # age = as.integer(stringr::str_split(element, ": ", n = 2, simplify = TRUE)[2]) /12
+        umbilical = umbilical + 1
+      }
+    }
+    if(is.na(age)){
+      cat("Skipping dataset ", filename, " - no age label provided")
+      break
+    }
+    methylation_values = sample$VALUE
+    
+    if (is.null(current_df)){
+      current_df = data.frame(ID_REF=sample$ID_REF, VALUE=sample$VALUE)
+      colnames(current_df) <- c("ID_REF", name)
+      print(name)
+      print(age)
+      current_label = data.frame(age=age, name=name)
+      colnames(current_label) <- c("age", "name")
+      next
+    }
+    new_column = data.frame(ID_REF=sample$ID_REF, VALUE=sample$VALUE)
+    colnames(new_column) <- c("ID_REF", name)
+    current_df = merge(current_df, new_column, by="ID_REF")
+    current_label[nrow(current_label)+1, ] <- c(age, name)
+    
+    j = j + 1
+  }
+}
+write.table(current_df,"age_df.csv", row.names=F, sep="," )
+write.table(current_label,"age_labels.csv", row.names=F, sep="," )
+show(current_df[1:5, 1:5])
+```
+
+
+```{r}
+obtain_data=function(data_frame_file, label_file) 
+{
+  current_df <- read.csv(data_frame_file)
+  current_label <- read.csv(label_file)
+
+  d1 <<- dim(current_df)[[1]]
+  d2 <<- dim(current_df)[[2]]
+  
+  df = data.matrix(current_df[1:d1, 2:d2])
+  df = t(df)
+  filled_df = na.aggregate(df)
+
+  df = data.frame(filled_df)
+  df$age = current_label$age
+  train_index <<- round(dim(df)[[1]] * 0.8)
+  
+  
+  #Shuffle the data
+  shuffled_df <<- df[sample(nrow(df)),]
+
+  train_df <<- shuffled_df[1:train_index,]
+  
+  train_xs  <<-  data.matrix(subset(train_df, select = -c(age) ))
+  train_ys  <<-  train_df$age
+  
+  test_df  <<-  shuffled_df[(train_index+1):d2,]
+  
+  test_xs  <<-  data.matrix(subset(test_df, select = -c(age) ))
+  test_ys <<- test_df$age
+}
+```
+
+```{r}
+subset(test_df, select = -c(age) )
+```
+
+
+```{r}
+fit_and_print = function(train_xs=NULL, train_ys=NULL, test_xs=NULL, test_ys=NULL){
+  # use 10 fold cross validation to estimate the lambda parameter 
+  # in the training data
+  glmnet.Training.CV = cv.glmnet(train_xs, train_ys, nfolds=10,alpha=0.5,family="gaussian")
+  # The definition of the lambda parameter:
+  lambda.glmnet.Training = glmnet.Training.CV$lambda.min
+  # Fit the elastic net predictor to the training data
+  glmnet.Training = glmnet(train_xs, train_ys, family="gaussian", alpha=0.5, nlambda=100)
+  # Arrive at an estimate of of DNAmAge
+  DNAmAgeBasedOnTraining=predict(glmnet.Training,test_xs,type="response",s=lambda.glmnet.Training)
+  
+  
+  actual<<-unlist(test_ys)
+  pred<<-unlist(DNAmAgeBasedOnTraining[,1])
+  errors_vector <<- actual - pred
+  errors_vector = data.frame(errors_vector)
+  errors_vector = subset(errors_vector, (!is.na(errors_vector)))
+  errors_vector <<- errors_vector$errors_vector
+  return(glmnet.Training)
+}
+```
+
+
+```{r}
+obtain_data("norm_age_df.csv", "norm_age_labels.csv")
+result1 = fit_and_print(train_xs=train_xs, train_ys=train_ys, test_xs=test_xs, test_ys=test_ys)
+cat("The mean error: ", mean(abs(errors_vector)), "\n")
+cat("The median error: ", median(abs(errors_vector)), "\n")
+```
+
+```{r}
+dataframes = obtain_data("age_df.csv", "age_labels.csv")
+result2 = fit_and_print(train_xs=train_xs, train_ys=train_ys, test_xs=test_xs, test_ys=test_ys)
+cat("The mean error: ", mean(abs(errors_vector)), "\n")
+cat("The median error: ", median(abs(errors_vector)), "\n")
+```
+
+
+```{r}
+dataframes = obtain_data("df.csv", "labels.csv")
+result3 = fit_and_print(train_xs=train_xs, train_ys=train_ys, test_xs=test_xs, test_ys=test_ys)
+cat("The mean error: ", mean(abs(errors_vector)), "\n")
+cat("The median error: ", median(abs(errors_vector)), "\n")
+```
+
+```{r}
+dataframes = obtain_data("df.csv", "labels.csv")
+```
+
+```{r}
+df[1:10, 1:dim(df)[[2]]]
+```
+
+
+```{r}
+df <- read.csv("reduced_dimensions.csv")
+d1 = dim(df)[[1]]
+d2 = dim(df)[[2]]
+age = data.matrix(labels)
+labels = data.frame(age)
+colnames(labels)[[1]] = "age"
+df <-df[, 1:(d2-1)]
+write.csv(df, "best_df.csv")
+write.csv(labels, "best_labels.csv")
+```
+
+```{r}
+obtain_data_pd=function(data_frame_file, label_file) 
+{
+  current_df <- read.csv(data_frame_file)
+  current_label <- read.csv(label_file)
+
+  d1 <<- dim(current_df)[[1]]
+  d2 <<- dim(current_df)[[2]]
+  
+  df = data.matrix(current_df[1:d1, 2:d2])
+  filled_df = na.aggregate(df)
+
+  df = data.frame(filled_df)
+  df$age = current_label$age
+  train_index <<- round(dim(df)[[1]] * 0.9)
+  
+  
+  #Shuffle the data
+  shuffled_df <<- df
+
+  train_df <<- shuffled_df[1:train_index,]
+  
+  train_xs  <<-  data.matrix(subset(train_df, select = -c(age) ))
+  train_ys  <<-  train_df$age
+  
+  test_df  <<-  shuffled_df[(train_index+1):d2,]
+  
+  test_xs  <<-  data.matrix(subset(test_df, select = -c(age) ))
+  test_ys <<- test_df$age
+}
+```
+
+
+```{r}
+dataframe = obtain_data_pd("best_df.csv", "best_labels.csv")
+
+result4 = fit_and_print(train_xs=train_xs, train_ys=train_ys, test_xs=test_xs, test_ys=test_ys)
+cat("The mean error: ", mean(abs(errors_vector)), "\n")
+cat("The median error: ", median(abs(errors_vector)), "\n")
+```
+
+```{r}
+cpgs = current_df[,1]
+cfs = cm[,100]
+non_zero = NULL
+i=0
+for(element in cfs){
+  i=i+1
+  if(element != 0){
+    if(is.null(non_zero)){
+      non_zero = data.frame(coefficient=element, cpg=cpgs[[i]])
+      next
+    }
+    rows = dim(non_zero)[[1]]
+    non_zero[rows+1,]=c(element, cpgs[[i]])
+  }
+}
+write.table(non_zero,"my_coefficiets.csv", row.names=F, sep="," )
+```
+
+
+```{r}
+coefficients_h <- read.csv("23.csv")
+cpgs_h <- coefficients_h$CpGmarker
+common_cpgs=intersect(cpgs_h,non_zero$cpg)
+show(common_cpgs)
+```
+
+
+```{r}
+show(result1)
+```
+
+```{r}
+plot(result3)
+```
+
+```{r}
+c = coef(result3)
+print(dim(c))
+```
+
+```{r}
+cm = data.matrix(c)
+apply(cm, 2, function(c)sum(c!=0))
+print(sum(cm[,100]!=0))
+```
+
+```{r}
+current_df <- read.csv("df.csv")
+```
+
+
+```{r}
+cpgs = current_df[,1]
+cfs = cm[,100]
+non_zero = NULL
+i=0
+for(element in cfs){
+  i=i+1
+  if(element != 0){
+    if(is.null(non_zero)){
+      non_zero = data.frame(coefficient=element, cpg=cpgs[[i]])
+      next
+    }
+    rows = dim(non_zero)[[1]]
+    non_zero[rows+1,]=c(element, cpgs[[i]])
+  }
+}
+write.table(non_zero,"my_coefficiets.csv", row.names=F, sep="," )
+```
+
+
+```{r}
+coefficients_h <- read.csv("23.csv")
+cpgs_h <- coefficients_h$CpGmarker
+common_cpgs=intersect(cpgs_h,non_zero$cpg)
+show(common_cpgs)
+```
+
+```{r}
+cpgs_h
+```
+
+
+
+
+
