@@ -1,7 +1,7 @@
 # Epigenetic_Clocks
 Hello! Welcome to the world of epigenetic clocks and age prediction.
 
-Here, me and my teammated implemented and evaluated 2 transformer encoder architectures for age inference based on the DNA methylation values. 
+Here, me and my teammates implemented and evaluated 2 transformer encoder architectures for age inference based on the DNA methylation values. 
 We also reproduced the previous results using the multilayer perceptron (Camillo et.al.) and the linear regression (Horvath et.al.)
 
 In this repository, you will find 3 folders.
