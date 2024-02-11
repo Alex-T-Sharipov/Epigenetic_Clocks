@@ -18,8 +18,8 @@ If you have any questions, feel free to reach out (winterblizzard19@gmail.com)
 ## Usage
 In order to successfully run the code in this repository, you will need to complete the following steps:
 
-1. Clone the repository into your local machine
-2. In the root folder of the repository, unzip the Dataset.zip file
+1. Clone the repository into your local machine.
+2. In the root folder of the repository, unzip the Dataset.zip file.
 3. Set up python virtual environment with the following commands:
 
 ```
@@ -27,7 +27,7 @@ python -m venv .venv
 source ./.venv/bin/activate
 pip install -r requirements.txt
 ```
-4. After activating the environment and installing the dependencies, you can connect to the Jupyter Kernel and run the provided .ipynb notebooks
+4. After activating the environment and installing the dependencies, you can connect to the Jupyter Kernel and run the provided .ipynb notebooks.
 
 # Results
 
@@ -80,7 +80,7 @@ Both transformer architectures were trained for 500 or 1000 epochs using Adam op
 ![Training dynamics](figures/Transf_Train.png "Training dynamics")
 Figure 5. The training and validation loss of Transformer A with 128 hidden dimensions, 1 attention head, and learnable down sampling.
 
-## Model performance
+# Performance evaluation
 
 Following training, the median absolute error of each model is as follows:
 
